@@ -1,4 +1,4 @@
-from sqlalchemy import and_
+from sqlalchemy import and_, cast, String
 from sqlalchemy.orm import Session
 from src import schemas
 from src.database.models import Contact
@@ -23,16 +23,14 @@ async def get_contact(db: Session, user: User, contact_id: int):
 async def get_contact_by_email(db: Session, user: User, email: str):
     result = db.execute(select(Contact).filter(Contact.email == email, Contact.user_id == user.id))
     contact = result.scalars().first()
-    if not contact:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found")
+
     return contact
 
 
 async def get_contact_by_phone(db: Session, user: User, phone_number: str):
     result = db.execute(select(Contact).filter(Contact.phone_number == phone_number, Contact.user_id == user.id))
     contact = result.scalars().first()
-    if not contact:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found")
+
     return contact
 
 
@@ -91,11 +89,29 @@ async def search_contacts(db: Session, user: User, first_name: str = None, last_
     return result.scalars().all()
 
 
+# для постгрес
+
+# async def get_contacts_by_birthday(db: Session, user: User, start_date: date, end_date: date):
+#     query = select(Contact).where(
+#         func.date_part('month', Contact.birthday).between(start_date.month, end_date.month) &
+#         func.date_part('day', Contact.birthday).between(start_date.day, end_date.day) &
+#         (Contact.user_id == user.id)  # Додано умову для user_id
+#     )
+#     result = db.execute(query)
+#     return result.scalars().all()
+
+
+
+
 async def get_contacts_by_birthday(db: Session, user: User, start_date: date, end_date: date):
     query = select(Contact).where(
-        func.date_part('month', Contact.birthday).between(start_date.month, end_date.month) &
-        func.date_part('day', Contact.birthday).between(start_date.day, end_date.day) &
-        (Contact.user_id == user.id)  # Додано умову для user_id
+        and_(
+            cast(func.strftime('%m%d', Contact.birthday), String) >= start_date.strftime('%m%d'),
+            cast(func.strftime('%m%d', Contact.birthday), String) <= end_date.strftime('%m%d'),
+            (Contact.user_id == user.id)
+        )
     )
     result = db.execute(query)
     return result.scalars().all()
+
+

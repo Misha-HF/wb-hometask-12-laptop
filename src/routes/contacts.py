@@ -14,8 +14,8 @@ router = APIRouter()
 
 @router.post("/contacts/", response_model=schemas.ContactResponse, status_code=status.HTTP_201_CREATED)
 async def create_contact(contact: schemas.ContactCreate, db: Session = Depends(get_db), current_user: User = Depends(auth_service.get_current_user)):
-    db_contact_by_email = await contacts.get_contact_by_email(db, email=contact.email)
-    db_contact_by_phone = await contacts.get_contact_by_phone(db, phone_number=contact.phone_number)
+    db_contact_by_email = await contacts.get_contact_by_email(db, user=current_user, email=contact.email)
+    db_contact_by_phone = await contacts.get_contact_by_phone(db, user=current_user, phone_number=contact.phone_number)
     if db_contact_by_email or db_contact_by_phone:
         raise HTTPException(status_code=400, detail="Email or phone number already registered")
     return await contacts.create_contact(db=db, user=current_user, contact=contact)

@@ -38,7 +38,6 @@ class UserDb(BaseModel):
     username: str
     email: str
     created_at: datetime
-    avatar: str
 
     class Config:
         orm_mode = True
